@@ -5,35 +5,59 @@
  */
  
 import processing.video.*;
+import processing.sound.*;
 
-Tuple[] captureColors;
-Tuple[] drawColors;
-Tuple[] checkColors;
+RGBColor[] captureColors;
+RGBColor[] checkColors;
+int[] colorCounts;
 
 Capture cam;
 
+TriOsc[] tones;
+
 // How many pixels to skip in either direction
 int increment = 5;
-// Use this to increase the size of the video
-int sizeFactor = 1;
+// How many colors we have
+int numColors = 4;
+
+int kWhite = 0;
+int kRed = 1;
+int kBlue = 2;
+int kGreen = 3;
+
 void setup() {
-  size(230, 480);
+  size(320, 480);
   cam = new Capture(this, 320, 240);
   cam.start();
   
   int count = (cam.width * cam.height) / (increment * increment);
-  drawColors = new Tuple[count];
-  captureColors = new Tuple[count];
+  captureColors = new RGBColor[count];
   for (int i = 0; i < count; i++) {
-    captureColors[i] = new Tuple();
-    drawColors[i] = new Tuple(0.5, 0.5, 0.5);
+    captureColors[i] = new RGBColor();
   }
   
   // Add the initial pixels we're going to compare to
-  checkColors = new Tuple[3];
-  checkColors[0] = new Tuple(190., 190., 190.);  // White, or some gray
-  checkColors[1] = new Tuple(255., 0. , 0.);     // Red
-  checkColors[2] = new Tuple(0., 0. , 255.);     // Blue
+  float whiteVal = 145.; // Max value: 255
+  checkColors = new RGBColor[numColors];
+  colorCounts = new int[numColors];
+  
+  checkColors[kWhite] = new RGBColor(whiteVal, whiteVal, whiteVal);
+  checkColors[kRed] = new RGBColor(128., 53. , 146.);
+  checkColors[kBlue] = new RGBColor(37., 96. , 133.);
+  checkColors[kGreen] = new RGBColor(137., 164. , 63.);
+
+  tones = new TriOsc[numColors];
+  for (int i = 0; i < numColors; i++) {
+    tones[i] = new TriOsc(this);
+  }
+
+  
+  RGBColor white = new RGBColor(50., 100., 200.);
+  println(white);
+  LABColor labWhite = new LABColor(white);
+  println(labWhite);
+  RGBColor rgbWhite = new RGBColor(labWhite);
+  println(rgbWhite);
 }
 
 void draw() {
@@ -43,6 +67,11 @@ void draw() {
 
     background(0);
     noStroke();
+    
+    // Reset colors
+    for (int i = 0; i < colorCounts.length; i++) {
+      colorCounts[i] = 0;
+    }
     
     // Capture all the colors and put them into an array
     int index = 0;
@@ -54,48 +83,54 @@ void draw() {
         int g = (pixelColor >> 8) & 0xff;
         int b = pixelColor & 0xff;
         
-        Tuple testTuple = new Tuple(r, g, b);
-        testTuple = nearestColor(testTuple);
-
-        captureColors[index].set(testTuple.x, testTuple.y, testTuple.z);
+        RGBColor newColor = new RGBColor(r, g, b);
+        newColor = nearestColor(newColor);
+        captureColors[index].set(newColor.r, newColor.g, newColor.b);
         
-        // Get the closest color
-        
+        colorCounts[newColor.id] = colorCounts[newColor.id] + 1; 
         index++;
       }
     }
-    image(cam, 0, 0);
     
+    loadPixels();
     
-    beginShape(QUAD_STRIP);
-    for (int i = 0; i < index; i++) {
-      //drawColors[i].target(captureColors[i], 0.1);
-      captureColors[i].phil();
-
-      float x = map(i, 0, index, 0, width);
-      vertex(x, height/2.0);
-      vertex(x, height);
+    for (int h = 0; h < cam.height; h++) {
+      for (int w = 0; w < cam.width; w++) {
+        int pixelVal = h * cam.width + w;
+        int colorIndex = h/increment * cam.width/increment + w/increment;
+        pixels[pixelVal] = captureColors[colorIndex].kuler();;
+      }
     }
-    endShape();
+    
+    updatePixels();
+    image(cam, 0, 240);
+    
+    // Map amount of red for amplitude
+    tri.amp(map(colorCounts[kRed], 0, index, 1.0, 0.0));
+    // Map amount of blue to frequency (20Hz to 1000Hz)  
+    tri.freq(map(colorCounts[kBlue], 0, index, 80.0, 1000.0));
   }
 }
 
-Tuple nearestColor(Tuple input) {
-  Tuple nearestColor = checkColors[0];
+RGBColor nearestColor(RGBColor input) {
+  RGBColor nearestColor = checkColors[0];
   float nearestDistance = Float.MAX_VALUE;
   for (int i = 0; i < checkColors.length; i++) {
     if (distance(input, checkColors[i]) < nearestDistance) {
       nearestColor = checkColors[i];
+      nearestColor.setId(i);
       nearestDistance = distance(input, checkColors[i]);
     }
   }
   return nearestColor;
 }
 
-public float distance(Tuple a, Tuple b) {
-  // Geometric distance
-    //return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2) + pow(a.z - b.z, 2));
-  // Absolute distance
-    return abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z);
-
+public float distance(RGBColor a, RGBColor b) {
+    // LAB distance
+    LABColor labA = new LABColor(a);
+    LABColor labB = new LABColor(b);  
+    return labA.distanceFrom(labB);
+    
+    // Geometric distance
+    //return sqrt(pow(a.r - b.r, 2) + pow(a.g - b.g, 2) + pow(a.b - b.b, 2));
 }
