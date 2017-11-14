@@ -48,16 +48,17 @@ void setup() {
 
   tones = new TriOsc[numColors];
   for (int i = 0; i < numColors; i++) {
-    tones[i] = new TriOsc(this);
+    if (i == kWhite) {
+      tones[i] = null;
+    }
+    TriOsc tone = new TriOsc(this);
+    tone.amp(0.);
+    if (i == kRed)        tone.freq(261.62); // Middle C
+    else if (i == kGreen)  tone.freq(329.62); // E above Middle C
+    else if (i == kBlue)   tone.freq(196.00); // G below Middle C 
+    tones[i] = tone;
+    tone.play();
   }
-
-  
-  RGBColor white = new RGBColor(50., 100., 200.);
-  println(white);
-  LABColor labWhite = new LABColor(white);
-  println(labWhite);
-  RGBColor rgbWhite = new RGBColor(labWhite);
-  println(rgbWhite);
 }
 
 void draw() {
@@ -105,10 +106,15 @@ void draw() {
     updatePixels();
     image(cam, 0, 240);
     
-    // Map amount of red for amplitude
-    tri.amp(map(colorCounts[kRed], 0, index, 1.0, 0.0));
-    // Map amount of blue to frequency (20Hz to 1000Hz)  
-    tri.freq(map(colorCounts[kBlue], 0, index, 80.0, 1000.0));
+    for (int i = 0; i < numColors; i++) {
+      // Skip white
+      if (i != kWhite) {
+        TriOsc tri = tones[i];
+        // Map amound of color to amplitude for the corresponding tone
+        tri.amp(map(colorCounts[i], 0, index, 0.0, 1.0));
+        //tones[i] = tri;
+      }
+    }
   }
 }
 
