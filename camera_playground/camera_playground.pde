@@ -6,15 +6,23 @@
  
 import processing.video.*;
 import processing.sound.*;
+import ddf.minim.*;
 
 RGBColor[] captureColors;
 RGBColor[] checkColors;
 int[] colorCounts;
 
 Capture cam;
+Minim minim;
 
-TriOsc[] tones;
+int[][] soundBoard;
 
+AudioPlayer bass;
+AudioPlayer kick;
+AudioPlayer snare;
+AudioPlayer zing;
+
+int neverPrint = 0;
 // How many pixels to skip in either direction
 int increment = 5;
 // How many colors we have
@@ -24,6 +32,9 @@ int kWhite = 0;
 int kRed = 1;
 int kBlue = 2;
 int kGreen = 3;
+
+int kNumZones = 16;
+int kNumPitches = 4;
 
 void setup() {
   size(320, 480);
@@ -35,7 +46,6 @@ void setup() {
   for (int i = 0; i < count; i++) {
     captureColors[i] = new RGBColor();
   }
-  
   // Add the initial pixels we're going to compare to
   float whiteVal = 145.; // Max value: 255
   checkColors = new RGBColor[numColors];
@@ -46,19 +56,13 @@ void setup() {
   checkColors[kBlue] = new RGBColor(37., 96. , 133.);
   checkColors[kGreen] = new RGBColor(137., 164. , 63.);
 
-  tones = new TriOsc[numColors];
-  for (int i = 0; i < numColors; i++) {
-    if (i == kWhite) {
-      tones[i] = null;
-    }
-    TriOsc tone = new TriOsc(this);
-    tone.amp(0.);
-    if (i == kRed)        tone.freq(261.62); // Middle C
-    else if (i == kGreen)  tone.freq(329.62); // E above Middle C
-    else if (i == kBlue)   tone.freq(196.00); // G below Middle C 
-    tones[i] = tone;
-    tone.play();
-  }
+  minim = new Minim(this);
+  soundBoard = new int [kNumZones][kNumPitches]; 
+  
+  kick = minim.loadFile("sounds/kick.wav");
+  snare = minim.loadFile("sounds/snare.wav");
+  bass = minim.loadFile("sounds/bass.wav");
+  zing = minim.loadFile("sounds/zing.wav");
 }
 
 void draw() {
@@ -87,8 +91,10 @@ void draw() {
         RGBColor newColor = new RGBColor(r, g, b);
         newColor = nearestColor(newColor);
         captureColors[index].set(newColor.r, newColor.g, newColor.b);
+        captureColors[index].setId(newColor.id);
         
-        colorCounts[newColor.id] = colorCounts[newColor.id] + 1; 
+        colorCounts[newColor.id] = colorCounts[newColor.id] + 1;
+        
         index++;
       }
     }
@@ -106,14 +112,68 @@ void draw() {
     updatePixels();
     image(cam, 0, 240);
     
-    for (int i = 0; i < numColors; i++) {
-      // Skip white
-      if (i != kWhite) {
-        TriOsc tri = tones[i];
-        // Map amound of color to amplitude for the corresponding tone
-        tri.amp(map(colorCounts[i], 0, index, 0.0, 1.0));
-        //tones[i] = tri;
+    int totalWidth = cam.width / increment;
+    int totalHeight = cam.height / increment;
+    int zoneWidth = totalWidth/kNumZones;
+    int pitchHeight = totalHeight/kNumPitches;
+    
+    //print(totalWidth);
+    
+    int count = 0;
+    for (int i = 0; i < kNumZones; i++) { // For every zone
+      int pitchIterator = 0;
+      for (int j = i * zoneWidth; j < totalWidth * totalHeight; j += (totalWidth * pitchHeight)) { // For every pitch within that zone
+        int[] pitchColors = new int[numColors];
+        for (int k = j; k < j + totalWidth * pitchHeight; k += totalWidth) { // For every row within that pitch
+          for (int l = k; l < k + zoneWidth; l++) { // Iterate through that row
+            pitchColors[captureColors[l].id] = pitchColors[captureColors[l].id] + 1;
+          }
+        }
+        
+        int freqColorId = -1;
+        int freqColorCount = -1;
+        for (int x = 0; x < numColors; x++) {
+          if (pitchColors[x] > freqColorCount) {
+            freqColorId = x;
+            freqColorCount = pitchColors[x];
+          }
+        }
+        
+        soundBoard[i][pitchIterator] = freqColorId;
+        pitchIterator++;
       }
+    }
+
+    // Print the board
+    for(int i = 0; i < kNumPitches; i++) {
+      for(int j = 0; j < kNumZones; j++) {
+        print(soundBoard[j][i]);
+        print(" ");
+      }
+      println();
+    }
+    println();
+
+    // Time to play some music!!
+    for(int i = 0; i < kNumZones; i++){
+      int[] pitchArray = soundBoard[i];
+      if(pitchArray[0] > 1) {
+        bass.rewind();
+        bass.play();
+      }
+      if(pitchArray[1] > 1) {
+        snare.rewind();
+        snare.play();
+      }
+      if(pitchArray[2] > 1) {
+        zing.rewind();
+        zing.play();
+      }
+      if(pitchArray[3] > 1) {
+        kick.rewind();
+        kick.play();
+      }
+      delay(250);
     }
   }
 }
