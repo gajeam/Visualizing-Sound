@@ -17,14 +17,12 @@ Minim minim;
 
 int[][] soundBoard;
 
-AudioPlayer bass;
-AudioPlayer kick;
-AudioPlayer snare;
-AudioPlayer zing;
+AudioPlayer[] pianos;
+
 
 int neverPrint = 0;
 // How many pixels to skip in either direction
-int increment = 5;
+int increment = 4;
 // How many colors we have
 int numColors = 4;
 
@@ -34,11 +32,11 @@ int kBlue = 2;
 int kGreen = 3;
 
 int kNumZones = 8;
-int kNumPitches = 4;
+int kNumPitches = 10;
 
 int time;
 int currentZone = 0;
-int kNoteLength = 500;
+int kNoteLength = 1000;
 
 void setup() {
   size(320, 480);
@@ -63,10 +61,13 @@ void setup() {
   minim = new Minim(this);
   soundBoard = new int [kNumZones][kNumPitches]; 
   
-  kick = minim.loadFile("sounds/kick.wav");
-  snare = minim.loadFile("sounds/snare.wav");
-  bass = minim.loadFile("sounds/bass.wav");
-  zing = minim.loadFile("sounds/zing.wav");
+  String [] notes =  {"c3", "d3", "e3", "g3", "a3", "c4", "d4", "e4", "g4", "a4"}; // pentatonic scale
+  pianos = new AudioPlayer[kNumPitches];
+  for (int i = 0; i < kNumPitches; i++) {
+    AudioPlayer p = minim.loadFile("sounds/pianos/piano-key-" + notes[i] + ".wav");
+    p.rewind();
+    pianos[i] = p;
+  }
   
   // Call this last
   time = millis();
@@ -101,6 +102,7 @@ void draw() {
         captureColors[index].setId(newColor.id);
         
         colorCounts[newColor.id] = colorCounts[newColor.id] + 1;
+        
         index++;
       }
     }
@@ -160,20 +162,15 @@ void playNotesInZone(int zone) {
 
   // Time to play some music!!
   int[] pitchArray = soundBoard[zone];
-  if(pitchArray[0] > 1) {
-    bass.loop(0);
-  }
-  if(pitchArray[1] > 1) {
-    snare.rewind();
-    snare.loop(0);
-  }
-  if(pitchArray[2] > 1) {
-    zing.rewind();
-    zing.loop(0);
-  }
-  if(pitchArray[3] > 1) {
-    kick.rewind();
-    kick.loop(0);
+  for (int i = 0; i < kNumPitches; i++) {
+    AudioPlayer p = pianos[i];
+    if (pitchArray[i] >= 1) {
+      if (p.isPlaying()) {
+        p.rewind();
+      } else {
+        p.loop(1);
+      }
+    }
   }
 }
   

@@ -17,7 +17,6 @@ void setup()
   // create a sine wave Oscil, set to 440 Hz, at 0.5 amplitude
   String [] notes =  {"c3", "d3", "e3", "g3", "a3", "c4", "d4", "e4", "g4", "a4"};
   
-  
   pianos = new AudioPlayer[numNotes];
   for (int i = 0; i < numNotes; i++) {
     AudioPlayer p = minim.loadFile("sounds/pianos/piano-key-" + notes[i] + ".wav");
@@ -39,11 +38,9 @@ void draw() {
     if (i == r1 || i == r2 || i == r3) {
       if (p.isPlaying()) {
         p.rewind();
+      } else {
+        p.loop(0);
       }
-      p.loop(1);
-    } else {
-      //p.rewind();
-      //p.pause();
     }
   }
   delay(1500);
