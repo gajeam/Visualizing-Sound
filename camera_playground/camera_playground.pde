@@ -33,8 +33,12 @@ int kRed = 1;
 int kBlue = 2;
 int kGreen = 3;
 
-int kNumZones = 16;
+int kNumZones = 8;
 int kNumPitches = 4;
+
+int time;
+int currentZone = 0;
+int kNoteLength = 1000;
 
 void setup() {
   size(320, 480);
@@ -63,6 +67,9 @@ void setup() {
   snare = minim.loadFile("sounds/snare.wav");
   bass = minim.loadFile("sounds/bass.wav");
   zing = minim.loadFile("sounds/zing.wav");
+  
+  // Call this last
+  time = millis();
 }
 
 void draw() {
@@ -105,78 +112,73 @@ void draw() {
       for (int w = 0; w < cam.width; w++) {
         int pixelVal = h * cam.width + w;
         int colorIndex = h/increment * cam.width/increment + w/increment;
-        pixels[pixelVal] = captureColors[colorIndex].kuler();;
+        pixels[pixelVal] = captureColors[colorIndex].kuler();
       }
     }
     
     updatePixels();
     image(cam, 0, 240);
     
-    int totalWidth = cam.width / increment;
-    int totalHeight = cam.height / increment;
-    int zoneWidth = totalWidth/kNumZones;
-    int pitchHeight = totalHeight/kNumPitches;
-    
-    //print(totalWidth);
-    
-    int count = 0;
-    for (int i = 0; i < kNumZones; i++) { // For every zone
-      int pitchIterator = 0;
-      for (int j = i * zoneWidth; j < totalWidth * totalHeight; j += (totalWidth * pitchHeight)) { // For every pitch within that zone
-        int[] pitchColors = new int[numColors];
-        for (int k = j; k < j + totalWidth * pitchHeight; k += totalWidth) { // For every row within that pitch
-          for (int l = k; l < k + zoneWidth; l++) { // Iterate through that row
-            pitchColors[captureColors[l].id] = pitchColors[captureColors[l].id] + 1;
-          }
-        }
-        
-        int freqColorId = -1;
-        int freqColorCount = -1;
-        for (int x = 0; x < numColors; x++) {
-          if (pitchColors[x] > freqColorCount) {
-            freqColorId = x;
-            freqColorCount = pitchColors[x];
-          }
-        }
-        
-        soundBoard[i][pitchIterator] = freqColorId;
-        pitchIterator++;
-      }
-    }
-
-    // Print the board
-    for(int i = 0; i < kNumPitches; i++) {
-      for(int j = 0; j < kNumZones; j++) {
-        print(soundBoard[j][i]);
-        print(" ");
-      }
-      println();
-    }
-    println();
-
-    // Time to play some music!!
-    for(int i = 0; i < kNumZones; i++){
-      int[] pitchArray = soundBoard[i];
-      if(pitchArray[0] > 1) {
-        bass.rewind();
-        bass.play();
-      }
-      if(pitchArray[1] > 1) {
-        snare.rewind();
-        snare.play();
-      }
-      if(pitchArray[2] > 1) {
-        zing.rewind();
-        zing.play();
-      }
-      if(pitchArray[3] > 1) {
-        kick.rewind();
-        kick.play();
-      }
-      delay(250);
+    // Check to see if it's time to play music
+    if (millis() - time >= kNoteLength) {
+      time = millis();
+      playNotesInZone(currentZone);
+      currentZone = (currentZone+1)%kNumZones;
     }
   }
 }
+
+
+void playNotesInZone(int zone) {
+  int totalWidth = cam.width / increment;
+  int totalHeight = cam.height / increment;
+  int zoneWidth = totalWidth/kNumZones;
+  int pitchHeight = totalHeight/kNumPitches;
+  
+  int pitchIterator = 0;
+  for (int j = zone * zoneWidth; j < totalWidth * totalHeight; j += (totalWidth * pitchHeight)) { // For every pitch within that zone
+    int[] pitchColors = new int[numColors];
+    for (int k = j; k < j + totalWidth * pitchHeight; k += totalWidth) { // For every row within that pitch
+      for (int l = k; l < k + zoneWidth; l++) { // Iterate through that row
+        pitchColors[captureColors[l].id] = pitchColors[captureColors[l].id] + 1;
+      }
+    }
+    
+    int freqColorId = -1;
+    int freqColorCount = -1;
+    for (int x = 0; x < numColors; x++) {
+      if (pitchColors[x] > freqColorCount) {
+        freqColorId = x;
+        freqColorCount = pitchColors[x];
+      }
+    }
+    
+    soundBoard[zone][pitchIterator] = freqColorId;
+    pitchIterator++;
+  }
+  
+  printSoundBoard();
+
+  // Time to play some music!!
+  int[] pitchArray = soundBoard[zone];
+  if(pitchArray[0] > 1) {
+    bass.rewind();
+    bass.loop(1);
+  }
+  if(pitchArray[1] > 1) {
+    snare.rewind();
+    snare.loop(1);
+  }
+  if(pitchArray[2] > 1) {
+    zing.rewind();
+    zing.loop(1);
+  }
+  if(pitchArray[3] > 1) {
+    kick.rewind();
+    kick.loop(1);
+  }
+}
+  
 
 RGBColor nearestColor(RGBColor input) {
   RGBColor nearestColor = checkColors[0];
@@ -191,7 +193,18 @@ RGBColor nearestColor(RGBColor input) {
   return nearestColor;
 }
 
-public float distance(RGBColor a, RGBColor b) {
+void printSoundBoard() {
+  // Print the board
+  for(int i = 0; i < kNumPitches; i++) {
+    for(int j = 0; j < kNumZones; j++) {
+      print(soundBoard[j][i]);
+      print(" ");
+    }
+    println();
+  }
+  println();
+}
+float distance(RGBColor a, RGBColor b) {
     // LAB distance
     LABColor labA = new LABColor(a);
     LABColor labB = new LABColor(b);  
