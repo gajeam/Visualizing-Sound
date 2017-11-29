@@ -38,7 +38,7 @@ int kNumPitches = 4;
 
 int time;
 int currentZone = 0;
-int kNoteLength = 1000;
+int kNoteLength = 500;
 
 void setup() {
   size(320, 480);
@@ -101,7 +101,6 @@ void draw() {
         captureColors[index].setId(newColor.id);
         
         colorCounts[newColor.id] = colorCounts[newColor.id] + 1;
-        
         index++;
       }
     }
@@ -162,20 +161,19 @@ void playNotesInZone(int zone) {
   // Time to play some music!!
   int[] pitchArray = soundBoard[zone];
   if(pitchArray[0] > 1) {
-    bass.rewind();
-    bass.loop(1);
+    bass.loop(0);
   }
   if(pitchArray[1] > 1) {
     snare.rewind();
-    snare.loop(1);
+    snare.loop(0);
   }
   if(pitchArray[2] > 1) {
     zing.rewind();
-    zing.loop(1);
+    zing.loop(0);
   }
   if(pitchArray[3] > 1) {
     kick.rewind();
-    kick.loop(1);
+    kick.loop(0);
   }
 }
   
