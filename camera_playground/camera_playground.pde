@@ -18,25 +18,31 @@ Minim minim;
 int[][] soundBoard;
 
 AudioPlayer[] pianos;
-
+AudioPlayer[] psalteriums;
+AudioPlayer[] drums;
 
 int neverPrint = 0;
 // How many pixels to skip in either direction
 int increment = 4;
 // How many colors we have
 int numColors = 4;
+int kMinimumColorThreshold = 3;
 
 int kWhite = 0;
 int kRed = 1;
 int kBlue = 2;
 int kGreen = 3;
 
+int kPianoColor = kBlue;
+int kPsalteriumColor = kRed;
+int kDrumsColor = kGreen;
+
 int kNumZones = 8;
 int kNumPitches = 10;
 
 int time;
 int currentZone = 0;
-int kNoteLength = 1000;
+int kNoteLength = 500;
 
 void setup() {
   size(320, 480);
@@ -54,19 +60,31 @@ void setup() {
   colorCounts = new int[numColors];
   
   checkColors[kWhite] = new RGBColor(whiteVal, whiteVal, whiteVal);
-  checkColors[kRed] = new RGBColor(128., 53. , 146.);
-  checkColors[kBlue] = new RGBColor(37., 96. , 133.);
-  checkColors[kGreen] = new RGBColor(137., 164. , 63.);
+  checkColors[kRed] = new RGBColor(77., 28. , 24.);
+  checkColors[kBlue] = new RGBColor(9., 20. , 79.);
+  checkColors[kGreen] = new RGBColor(53., 74. , 70.);
 
   minim = new Minim(this);
   soundBoard = new int [kNumZones][kNumPitches]; 
   
-  String [] notes =  {"c3", "d3", "e3", "g3", "a3", "c4", "d4", "e4", "g4", "a4"}; // pentatonic scale
+  String [] pianoNotes =  {"c3", "d3", "e3", "g2", "a3", "c4", "d4", "e4", "g4", "a4"}; // pentatonic scale
+  String [] pslateriumNotes =  {"c3", "d3", "e3", "g2", "a3", "c4", "d4", "e4", "g4", "a4"}; // pentatonic scale
+  String [] drumSounds = {"kick", "kick", "kick", "bass", "bass", "snare", "snare", "snare", "zing", "zing"};
   pianos = new AudioPlayer[kNumPitches];
+  psalteriums = new AudioPlayer[kNumPitches];
+  drums = new AudioPlayer[kNumPitches];
   for (int i = 0; i < kNumPitches; i++) {
-    AudioPlayer p = minim.loadFile("sounds/pianos/piano-key-" + notes[i] + ".wav");
-    p.rewind();
-    pianos[i] = p;
+    AudioPlayer pi = minim.loadFile("sounds/pianos/piano-key-" + pianoNotes[i] + ".wav");
+    pi.rewind();
+    pianos[i] = pi;
+    
+    AudioPlayer ps = minim.loadFile("sounds/psalterium/psalterium-" + pslateriumNotes[i] + ".wav");
+    ps.rewind();
+    psalteriums[i] = ps;
+    
+    AudioPlayer d = minim.loadFile("sounds/drums/" + drumSounds[i] + ".wav");
+    d.rewind();
+    drums[i] = d;
   }
   
   // Call this last
@@ -145,9 +163,9 @@ void playNotesInZone(int zone) {
       }
     }
     
-    int freqColorId = -1;
-    int freqColorCount = -1;
-    for (int x = 0; x < numColors; x++) {
+    int freqColorId = kWhite; // default should be white
+    int freqColorCount = kMinimumColorThreshold; // it has to beat this minimum
+    for (int x = 1; x < numColors; x++) { // start iterating after white
       if (pitchColors[x] > freqColorCount) {
         freqColorId = x;
         freqColorCount = pitchColors[x];
@@ -163,12 +181,19 @@ void playNotesInZone(int zone) {
   // Time to play some music!!
   int[] pitchArray = soundBoard[zone];
   for (int i = 0; i < kNumPitches; i++) {
-    AudioPlayer p = pianos[i];
-    if (pitchArray[i] >= 1) {
+    AudioPlayer p = null;
+    if (pitchArray[i] == kPianoColor) {
+      p = pianos[i];
+    } else if (pitchArray[i] == kPsalteriumColor) {
+      p = psalteriums[i]; 
+    } else if (pitchArray[i] == kDrumsColor) {
+      p = drums[i];
+    }
+    if (p != null) {
       if (p.isPlaying()) {
         p.rewind();
       } else {
-        p.loop(1);
+        p.loop(0);
       }
     }
   }
