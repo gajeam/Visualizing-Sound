@@ -25,13 +25,14 @@ int neverPrint = 0;
 // How many pixels to skip in either direction
 int increment = 4;
 // How many colors we have
-int numColors = 4;
+int numColors = 5;
 int kMinimumColorThreshold = 3;
 
 int kWhite = 0;
 int kRed = 1;
 int kBlue = 2;
 int kGreen = 3;
+int kSkin = 4;
 
 int kPianoColor = kBlue;
 int kPsalteriumColor = kRed;
@@ -63,6 +64,7 @@ void setup() {
   checkColors[kRed] = new RGBColor(77., 28. , 24.);
   checkColors[kBlue] = new RGBColor(9., 20. , 79.);
   checkColors[kGreen] = new RGBColor(53., 74. , 70.);
+  checkColors[kSkin] = new RGBColor(190., 132., 96);
 
   minim = new Minim(this);
   soundBoard = new int [kNumZones][kNumPitches]; 
