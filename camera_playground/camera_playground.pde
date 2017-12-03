@@ -69,9 +69,9 @@ void setup() {
   minim = new Minim(this);
   soundBoard = new int [kNumZones][kNumPitches]; 
   
-  String [] pianoNotes =  {"c3", "d3", "e3", "g2", "a3", "c4", "d4", "e4", "g4", "a4"}; // pentatonic scale
+  String [] pianoNotes =  {"c2", "d2", "e2", "g2", "a2", "c5", "d5", "e5", "g5", "a5"}; // pentatonic scale
   String [] pslateriumNotes =  {"c3", "d3", "e3", "g2", "a3", "c4", "d4", "e4", "g4", "a4"}; // pentatonic scale
-  String [] drumSounds = {"kick", "kick", "kick", "bass", "bass", "snare", "snare", "snare", "zing", "zing"};
+  String [] drumSounds = {"tom5", "tom5", "percussion2", "percussion2", "crash-cymbal1", "crash-cymbal1", "ride-cymbal1", "ride-cymbal1", "misc1", "misc1"};
   pianos = new AudioPlayer[kNumPitches];
   psalteriums = new AudioPlayer[kNumPitches];
   drums = new AudioPlayer[kNumPitches];
