@@ -69,8 +69,8 @@ void setup() {
   minim = new Minim(this);
   soundBoard = new int [kNumZones][kNumPitches]; 
   
-  String [] pianoNotes =  {"c2", "d2", "e2", "g2", "a2", "c5", "d5", "e5", "g5", "a5"}; // pentatonic scale
-  String [] pslateriumNotes =  {"c3", "d3", "e3", "g2", "a3", "c4", "d4", "e4", "g4", "a4"}; // pentatonic scale
+  String [] pianoNotes =  {"c3", "d2", "e3", "a2", "g3",  "c5", "d5", "e5", "g5", "a5"}; // pentatonic scale
+  String [] pslateriumNotes =  {"c3", "d3", "e3", "a3", "g2", "c4", "d4", "e4", "g4", "a4"}; // pentatonic scale
   String [] drumSounds = {"tom5", "tom5", "percussion2", "percussion2", "crash-cymbal1", "crash-cymbal1", "ride-cymbal1", "ride-cymbal1", "misc1", "misc1"};
   pianos = new AudioPlayer[kNumPitches];
   psalteriums = new AudioPlayer[kNumPitches];
@@ -91,6 +91,11 @@ void setup() {
   
   // Call this last
   time = millis();
+  
+  playChordForColor(kPianoColor);
+  playChordForColor(kPsalteriumColor);
+  playChordForColor(kDrumsColor);
+  delay(100);
 }
 
 void draw() {
@@ -143,6 +148,10 @@ void draw() {
     // Check to see if it's time to play music
     if (millis() - time >= kNoteLength) {
       time = millis();
+      if (time%10 == 0) {
+        println("TADA!");
+        playChordForColor(kPianoColor);
+      }
       playNotesInZone(currentZone);
       currentZone = (currentZone+1)%kNumZones;
     }
@@ -180,18 +189,12 @@ void playNotesInZone(int zone) {
   
   printSoundBoard();
 
-  // Time to play some music!!
+   //Time to play some music!!
   int[] pitchArray = soundBoard[zone];
   for (int i = 0; i < kNumPitches; i++) {
-    AudioPlayer p = null;
-    if (pitchArray[i] == kPianoColor) {
-      p = pianos[i];
-    } else if (pitchArray[i] == kPsalteriumColor) {
-      p = psalteriums[i]; 
-    } else if (pitchArray[i] == kDrumsColor) {
-      p = drums[i];
-    }
-    if (p != null) {
+    AudioPlayer[] instrument = pitchArrayForColor(pitchArray[i]);
+    if (instrument != null) {
+      AudioPlayer p = instrument[i];
       if (p.isPlaying()) {
         p.rewind();
       } else {
@@ -201,6 +204,37 @@ void playNotesInZone(int zone) {
   }
 }
   
+void playChordForColor(int kuler) {
+  // pause everything else
+  int[] colors = {kPianoColor, kPsalteriumColor, kDrumsColor};
+  for (int i = 0; i < 3; i++) {
+    AudioPlayer[] inst = pitchArrayForColor(colors[i]);
+    for (int j = 0; j < kNumPitches; j++) {
+      inst[j].rewind();
+      inst[j].pause();
+    }
+  }
+  
+  // play the sound
+  AudioPlayer[] instrument = pitchArrayForColor(kuler);
+  instrument[2].loop(0);
+  delay(200);
+  instrument[0].loop(0);
+  delay(400);
+  instrument[4].loop(0);
+  delay(500);
+}
+
+AudioPlayer[] pitchArrayForColor(int kuler) {
+  if (kuler == kPianoColor) {
+    return pianos;
+  } else if (kuler == kPsalteriumColor) {
+    return psalteriums; 
+  } else if (kuler == kDrumsColor) {
+    return drums;
+  }
+  return null;
+}
 
 RGBColor nearestColor(RGBColor input) {
   RGBColor nearestColor = checkColors[0];
