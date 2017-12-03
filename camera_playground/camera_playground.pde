@@ -7,6 +7,10 @@
 import processing.video.*;
 import processing.sound.*;
 import ddf.minim.*;
+import processing.serial.*;
+import cc.arduino.*;
+
+Arduino arduino;
 
 RGBColor[] captureColors;
 RGBColor[] checkColors;
@@ -20,6 +24,19 @@ int[][] soundBoard;
 AudioPlayer[] pianos;
 AudioPlayer[] psalteriums;
 AudioPlayer[] drums;
+
+// Analog Pin Values - Red A0, Blue A1, Green A5
+int kRedPin = 0;
+int kBluePin = 5;
+int kGreenPin = 2;
+
+int redVal = 0;
+int blueVal = 0;
+int greenVal = 0;
+
+boolean redHasPlayed;
+boolean blueHasPlayed;
+boolean greenHasPlayed;
 
 int neverPrint = 0;
 // How many pixels to skip in either direction
@@ -47,7 +64,9 @@ int kNoteLength = 500;
 
 void setup() {
   size(320, 480);
-  cam = new Capture(this, 320, 240);
+  
+
+  cam = new Capture(this, 320, 240, Capture.list()[0]); //320 240
   cam.start();
   
   int count = (cam.width * cam.height) / (increment * increment);
@@ -89,13 +108,13 @@ void setup() {
     drums[i] = d;
   }
   
+  arduino = new Arduino(this, Arduino.list()[2], 57600);
+  arduino.pinMode(kRedPin, Arduino.INPUT);
+  arduino.pinMode(kBluePin, Arduino.INPUT);
+  arduino.pinMode(kGreenPin, Arduino.INPUT);
+  
   // Call this last
   time = millis();
-  
-  playChordForColor(kPianoColor);
-  playChordForColor(kPsalteriumColor);
-  playChordForColor(kDrumsColor);
-  delay(100);
 }
 
 void draw() {
@@ -110,6 +129,7 @@ void draw() {
     for (int i = 0; i < colorCounts.length; i++) {
       colorCounts[i] = 0;
     }
+    checkMarkers();
     
     // Capture all the colors and put them into an array
     int index = 0;
@@ -148,10 +168,6 @@ void draw() {
     // Check to see if it's time to play music
     if (millis() - time >= kNoteLength) {
       time = millis();
-      if (time%10 == 0) {
-        println("TADA!");
-        playChordForColor(kPianoColor);
-      }
       playNotesInZone(currentZone);
       currentZone = (currentZone+1)%kNumZones;
     }
@@ -187,7 +203,7 @@ void playNotesInZone(int zone) {
     pitchIterator++;
   }
   
-  printSoundBoard();
+  //printSoundBoard();
 
    //Time to play some music!!
   int[] pitchArray = soundBoard[zone];
@@ -203,7 +219,49 @@ void playNotesInZone(int zone) {
     }
   }
 }
+
+void checkMarkers() {
+  redVal = arduino.analogRead(kRedPin);
+  blueVal = arduino.analogRead(kBluePin);
+  greenVal = arduino.analogRead(kGreenPin);
   
+  boolean colorDebug = false;
+  if (colorDebug) {
+    println(redVal);
+    println(greenVal);
+    println(blueVal);
+  }
+  if(redVal > 250) { // @Calibrate
+    if (redHasPlayed == false) {
+      playChordForColor(kPsalteriumColor);
+      println("Red is removed");
+    }
+    redHasPlayed = true;
+   } else {
+     redHasPlayed = false;
+   }
+   
+  if(blueVal > 500) { // @Calibrate
+    if (blueHasPlayed == false) {
+      playChordForColor(kPianoColor);
+      println("Blue is removed");
+    }
+    blueHasPlayed = true;
+   } else {
+     blueHasPlayed = false;
+   }
+
+  if(greenVal > 550) { // @Calibrate
+    if (greenHasPlayed == false) {
+      playChordForColor(kDrumsColor);
+      println("Green is removed");
+    }
+    greenHasPlayed = true;
+   } else {
+     greenHasPlayed = false;
+   }
+}
+
 void playChordForColor(int kuler) {
   // pause everything else
   int[] colors = {kPianoColor, kPsalteriumColor, kDrumsColor};
